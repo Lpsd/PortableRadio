@@ -35,6 +35,10 @@ DEFAULT_RADIO_VOLUME = 1.0
 -- Default: true
 ALWAYS_TRY_LOAD_ASSET = true
 
--- Which radio asset to spawn
--- Default: /Game/_STALKER2/GameDesign/QuestInteractiveObjects/Radio/GenericRadio/Radio_120/Hub/BP_100_Rads_Bar_120.BP_100_Rads_Bar_120_C
-RADIO_BP_ASSET = "/Game/_STALKER2/GameDesign/QuestInteractiveObjects/Radio/GenericRadio/Radio_120/Hub/BP_100_Rads_Bar_120.BP_100_Rads_Bar_120_C"
+-- Which radio blueprint class/asset to use
+-- Try another asset if the default doesn't work for you
+-- Default: /Game/_STALKER2/GameDesign/QuestInteractiveObjects/Radio/GenericRadio/Radio_120/Location/BP_Mix_120.BP_Mix_120_C
+-- Other examples:
+-- /Game/_STALKER2/GameDesign/QuestInteractiveObjects/Radio/GenericRadio/Radio_120/Hub/BP_Arena_120.BP_Arena_120_C
+-- /Game/_STALKER2/GameDesign/QuestInteractiveObjects/Radio/GenericRadio/Radio_120/Hub/BP_100_Rads_Bar_120.BP_100_Rads_Bar_120_C
+RADIO_BP_ASSET = "/Game/_STALKER2/GameDesign/QuestInteractiveObjects/Radio/GenericRadio/Radio_120/Location/BP_Mix_120.BP_Mix_120_C"

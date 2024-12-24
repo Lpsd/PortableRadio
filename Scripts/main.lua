@@ -32,7 +32,7 @@ local changedRadioFrequency = false
 -- This should always be executed in game thread
 local function SpawnFromClass(className)
     if (not className) or (type(className) ~= "string") then
-        dprint("Invalid class name")
+        dprint("Invalid class name\n")
         return
     end
 
@@ -40,20 +40,20 @@ local function SpawnFromClass(className)
     local position = GetPlayerLocation()
 
     if (not position) then
-        dprint("Failed to get player position")
+        dprint("Failed to get player position\n")
         return
     end
 
-    dprint("Player position: " .. VectorToString(position))
-    dprint("Spawning object at " .. position.X .. ", " .. position.Y .. ", " .. position.Z)
+    dprint("Player position: " .. VectorToString(position) .. "\n")
+    dprint("Spawning object at " .. position.X .. ", " .. position.Y .. ", " .. position.Z .. "\n")
 
     local object = SpawnActorFromClass(className, FVector(position.X, position.Y, position.Z), FRotator(0, 0, 0))
 
     if (IsValid(object)) then
-        dprint("Object spawned successfully")
+        dprint("Object spawned successfully\n")
         return object
     else
-        dprint("Failed to spawn object")
+        dprint("Failed to spawn object\n")
         return nil
     end
 end
@@ -63,8 +63,13 @@ function SpawnPortableRadio()
     print("SpawnPortableRadio:\n")
 
     if IsValid(playerRadio) then
-        dprint("Radio already spawned")
+        dprint("Radio already spawned\n")
         return nil
+    end
+
+    if (not IsWalking()) then
+        dprint("Not walking\n")
+        return
     end
 
     if (ALWAYS_TRY_LOAD_ASSET) then
@@ -73,7 +78,7 @@ function SpawnPortableRadio()
 
     playerRadio = SpawnFromClass(RADIO_BP_ASSET)
 
-    if IsNotValid(playerRadio) then
+    if (not IsRadioValid()) then
         playerRadio = nil
         dprint("Failed to spawn radio\n")
         return
@@ -86,7 +91,7 @@ function SpawnPortableRadio()
 
     if IsValid(playerPawn) and IsValid(playerPawn.RootComponent) then
         playerRadio:K2_AttachToComponent(playerPawn.RootComponent, playerPawn.RootComponent:GetAttachSocketName(), 1, 1, 1, false)
-        dprint("Radio attached to player")
+        dprint("Radio attached to player\n")
     end
 
     TurnOnRadio()
@@ -98,15 +103,13 @@ function GetRadio()
 end
 
 function TurnOnRadio()
-    if (not isEnabled) then return end
+    if (radioEnabled) then return end
 
-    if (radioEnabled) then
-        return false
-    end
+    dprint("Attempting to turn on radio\n")
 
-    if IsNotValid(playerRadio) then
+    if (not CanUseRadio()) then
         SpawnPortableRadio()
-        return false
+        return
     end
 
     playerRadio:BndEvt__BP_Interactable_Radio_120_HoldOn_K2Node_ComponentBoundEvent_10_InteractSignature__DelegateSignature()
@@ -118,17 +121,13 @@ function TurnOnRadio()
 end
 
 function TurnOffRadio()
-    if (not isEnabled) then return end
     if (changedRadioFrequency) then return false end
 
-    if (not radioEnabled) then
-        return false
-    end
+    dprint("Attempting to turn off radio\n")
 
-    if IsNotValid(playerRadio) then
+    if (not CanUseRadio()) then
         radioEnabled = false
-        dprint("Radio not spawned\n")
-        return false
+        return
     end
 
     playerRadio:BndEvt__BP_Interactable_Radio_120_HoldOff_K2Node_ComponentBoundEvent_11_InteractSignature__DelegateSignature()
@@ -141,8 +140,10 @@ end
 function ToggleRadio()
     if (not isEnabled) then return end
 
+    dprint("Attempting to toggle radio\n")
+
     if (radioEnabled) then
-        if IsNotValid(playerRadio) then
+        if (not IsRadioValid()) then
             radioEnabled = false
             TurnOnRadio()
             return
@@ -155,12 +156,12 @@ function ToggleRadio()
 end
 
 function ChangeRadioFrequency()
-    if (not isEnabled) then return end
     if (not radioEnabled) then return end
 
-    if IsNotValid(playerRadio) then
-        dprint("Attempted to change radio frequency, but radio not spawned\n")
-        return false
+    dprint("Attempting to change radio frequency\n")
+
+    if (not CanUseRadio()) then
+        return
     end
 
     playerRadio:BndEvt__BP_Interactable_Radio_120_SingleClick_K2Node_ComponentBoundEvent_9_InteractSignature__DelegateSignature()
@@ -176,11 +177,13 @@ function ChangeRadioFrequency()
 end
 
 function DestroyRadio()
-    if IsValid(playerRadio) and (not playerRadio.bActorIsBeingDestroyed) then
-        dprint("Destroying radio by actor\n")
-        playerRadio:K2_DestroyActor()
-        playerRadio = nil
-    end
+    ExecuteInGameThread(function()
+        if IsValid(playerRadio) and (not playerRadio.bActorIsBeingDestroyed) then
+            playerRadio:K2_DestroyActor()
+            playerRadio = nil
+            dprint("Radio destroyed\n")
+        end
+    end)
 end
 
 function SetRadioVolume(volume)
@@ -189,24 +192,54 @@ function SetRadioVolume(volume)
     volume = tonumber(volume)
 
     if (not volume) then
-        dprint("Invalid volume value")
+        dprint("Invalid volume value\n")
         return
     end
 
-    if IsNotValid(playerRadio) then
-        dprint("Attempted to set radio volume, but radio not spawned\n")
+    if (not CanUseRadio()) then
         return
     end
 
     local audio = playerRadio.InteractableRadioAk
 
     if IsNotValid(audio) then
-        dprint("Failed to get radio audio component")
+        dprint("Failed to get radio audio component\n")
         return
     end
 
     audio:SetOutputBusVolume(volume)
-    dprint("Radio volume set to " .. volume)
+    dprint("Radio volume set to " .. volume .. "\n")
+end
+
+function IsRadioValid()
+    return IsValid(playerRadio) and (playerRadio.BndEvt__BP_Interactable_Radio_120_HoldOn_K2Node_ComponentBoundEvent_10_InteractSignature__DelegateSignature ~= nil)
+end
+
+function CanUseRadio()
+    if (not isEnabled) then 
+        dprint("Not enabled\n")
+        return false 
+    end
+    if (not IsRadioValid()) then 
+        dprint("Radio not spawned\n")
+        return false 
+    end
+    if (not IsWalking()) then 
+        dprint("Not walking\n")
+        return false 
+    end
+    return true
+end
+
+function IsWalking()
+    local characterMovement = GetPlayerCharacterMovement()
+
+    if IsNotValid(characterMovement) then
+        dprint("Failed to get player character movement\n")
+        return false
+    end
+
+    return characterMovement:IsWalking()
 end
 
 NotifyOnNewObject("/Script/Stalker2.LoadingScreenWidget", function(self)
@@ -221,19 +254,19 @@ NotifyOnNewObject("/Script/Stalker2.LoadingScreenWidget", function(self)
 
     isEnabled = false
 
-    dprint("Loading screen\n")
+    dprint("Loading screen created\n")
 end)
 
 NotifyOnNewObject("/Script/Stalker2.DeathScreen", function(self)
     DestroyRadio()
 
     isEnabled = false
-    dprint("Death screen\n")
+    dprint("Death screen created\n")
 end)
 
 NotifyOnNewObject("/Script/Stalker2.Stalker2PlayerController", function(self)
     isEnabled = true
-    dprint("Player created")
+    dprint("Player controller created\n")
 end)
 
 RegisterConsoleCommandHandler("TurnOnRadio", TurnOnRadio)

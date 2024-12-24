@@ -29,44 +29,45 @@ function CreateInvalidObject()
     return nil
 end
 
----@param ClassName string
----@param Location FVector
----@param Rotation FRotator?
----@return AActor
 function SpawnActorFromClass(ActorClassName, Location, Rotation)
-    local invalidActor = CreateInvalidObject() ---@cast invalidActor AActor
+    local invalidActor = CreateInvalidObject()
+
+    dprint("SpawnActorFromClass: " .. ActorClassName .. "\n")
+
     if type(ActorClassName) ~= "string" or not Location then return invalidActor end
     Rotation = Rotation or FRotator()
 
-    local kismetMathLibrary = GetKismetMathLibrary()
-    local kismetSystemLibrary = GetKismetSystemLibrary()
     local gameplayStatics = GetGameplayStatics()
-    if (not kismetMathLibrary or not gameplayStatics or not kismetSystemLibrary) then return invalidActor end
+    if IsNotValid(gameplayStatics) then return invalidActor end
+
+    dprint("SpawnActorFromClass: gameplayStatics: " .. gameplayStatics:type() .. "\n")
 
     local world = UEHelpers.GetWorld()
     if IsNotValid(world) then return invalidActor end
 
+    dprint("SpawnActorFromClass: world: " .. world:type() .. "\n")
+
     local actorClass = StaticFindObject(ActorClassName)
     if IsValid(actorClass) and (actorClass:type() == "AActor") then
+        dprint("SpawnActorFromClass: Actor class found: " .. actorClass:type() .. "\n")
         local class = gameplayStatics:GetObjectClass(actorClass)
 
         if IsValid(class) and (class:type() == "UClass") then
+            dprint("SpawnActorFromClass: Class found: " .. class:type() .. "\n")
             actorClass = class
         end
     end
 
     if IsNotValid(actorClass) or (actorClass:type() ~= "UClass") then return invalidActor end
 
-    dprint("SpawnActorFromClass: world: " .. world:type())
-    dprint("SpawnActorFromClass: class: " .. actorClass:type())
-
     local actor = world:SpawnActor(actorClass, Location, Rotation)
 
     if IsValid(actor) then
-        dprint("SpawnActorFromClass: Actor successfully spawned: " .. actor:type())
+        dprint("SpawnActorFromClass: Actor successfully spawned: " .. actor:type() .. "\n")
         return actor
     end
 
+    dprint("SpawnActorFromClass: Failed to spawn actor\n" .. "\n")
     return invalidActor
 end
 
@@ -98,6 +99,20 @@ function GetPlayerPawn()
     if IsNotValid(playerController) then return CreateInvalidObject() end
 
     return playerController.Pawn
+end
+
+function GetPlayerCharacter()
+    local playerController = GetPlayerController()
+    if IsNotValid(playerController) then return CreateInvalidObject() end
+
+    return playerController.Character
+end
+
+function GetPlayerCharacterMovement()
+    local playerCharacter = GetPlayerCharacter()
+    if IsNotValid(playerCharacter) then return CreateInvalidObject() end
+
+    return playerCharacter.CharacterMovement
 end
 
 ---@return FVector?
